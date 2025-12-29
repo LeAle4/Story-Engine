@@ -1,5 +1,5 @@
 """Core entities for a text-adventure engine."""
-from __future__ import annotations
+import random
 from typing import Callable
 from PyCLI.utils import Callback
 
@@ -9,6 +9,13 @@ def find_object_by_name(name: str, objects: list[GameObject]) -> GameObject | No
         if obj.name == name:
             return obj
     return None
+
+def savegame(player: 'Player', game_map: tuple[Area], filename: str) -> None:
+    raise NotImplementedError("Savegame functionality is not yet implemented.")
+
+def loadgame(filename: str) -> tuple['Player', tuple[Area]]:
+    raise NotImplementedError("Loadgame functionality is not yet implemented.")
+
 
 class GameObject:
     """Base interactive entity with `targeted_function`."""
@@ -79,16 +86,16 @@ class Area:
         """Return True if `place2` is adjacent to `place1`."""
         return place2 in self.adjacency.get(place1, ())
 
-
 class Player(GameObject):
     """Player with inventory, location, and movement."""
     
-    def __init__(self, name:str, description:str, current_place:'Place',current_area:'Area',  inventory:list['Item'], targeted_function: Callback | None = None):
+    def __init__(self, name:str, description:str, current_place:'Place',current_area:'Area',  inventory:list['Item'], clues:dict[str,str], targeted_function: Callback | None = None):
         """Initialize with starting `place`, `area`, and `inventory`."""
         super().__init__(name, description, targeted_function)
         self.current_place = current_place
         self.current_area = current_area
         self.inventory = inventory
+        self.clues = clues
 
     def add_item(self, item:'Item'):
         """Add an item to inventory."""
@@ -145,3 +152,8 @@ class Player(GameObject):
         if item and target:
             target.targeted_function(self, item)
         return (True if item else False, True if target else False)
+
+    def think(self, thoughts:tuple[str], chance:float=0.3)->str:
+        if random.random() < chance:
+            return random.choice(tuple(self.clues.values()))
+        return random.choice(thoughts)
