@@ -8,10 +8,10 @@ this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text(encoding="utf-8") if (this_directory / "README.md").exists() else ""
 
 setup(
-    name="engine",
+    name="Engine",
     version="0.1.0",
-    author="Your Name",
-    author_email="your.email@example.com",
+    author="Alejandro Velázquez",
+    author_email="avelazquez@gmail.com",
     description="A text-adventure game engine for creating interactive fiction",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -34,18 +34,7 @@ setup(
         # "PyCLI>=1.0.0",  # Uncomment if PyCLI is available on PyPI
     ],
     extras_require={
-        "dev": [
-            "pytest>=7.0",
-            "pytest-cov>=4.0",
-            "black>=23.0",
-            "flake8>=6.0",
-            "mypy>=1.0",
-        ],
     },
     entry_points={
-        # Add console scripts if needed
-        # "console_scripts": [
-        #     "engine-cli=engine.cli:main",
-        # ],
     },
 )

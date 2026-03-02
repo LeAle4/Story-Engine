@@ -1,4 +1,0 @@
-# Core dependencies
-# PyCLI>=1.0.0  # Uncomment when available
-
-# Development dependencies (install with: pip install -r requirements-dev.txt)
