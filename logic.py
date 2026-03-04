@@ -9,102 +9,258 @@ from Engine.text import TUTORIAL
 
 #Fixes circular imports
 if TYPE_CHECKING:
-    from game1 import Game, Player, Item
+    from Engine.elements import Game, Player
 
 CLUE_CHANCE = 0.3
 
 class Event:
-    """Base class for events."""
+    """Base class for all game events.
+    
+    An event represents an action taken by the player or the system that can be processed
+    and handled by the game logic.
+    
+    Attributes:
+        params (dict): A dictionary containing event-specific parameters.
+    """
     def __init__(self, params:dict):
+        """Initialize an event with parameters.
+        
+        Args:
+            params (dict): Dictionary containing event-specific parameters.
+        """
         self.params = params
 
     @staticmethod
     def match(event1: Event, event2: Event) -> bool:
-        """Check if two events match by comparing their parameters and Event type."""
+        """Check if two events match by comparing their parameters and Event type.
+        
+        Two events are considered a match if they are of the same type and have identical parameters.
+        
+        Args:
+            event1 (Event): First event to compare.
+            event2 (Event): Second event to compare.
+            
+        Returns:
+            bool: True if events match, False otherwise.
+        """
         return event1.params == event2.params and type(event1) == type(event2)
 
 class EventSeq:
+    """Manages a sequence of events to be processed.
+    
+    This class maintains a queue of events that have been triggered and need to be
+    processed by the game. It provides methods to add, retrieve, and remove events
+    from the sequence.
+    
+    Attributes:
+        events (list[Event]): Class-level list of events in the sequence.
+    """
     events: list[Event] = []
 
     @classmethod
     def resolve_event(cls, event:Event):
-        """Resolve an event."""
+        """Remove an event from the sequence after it has been processed.
+        
+        Args:
+            event (Event): The event to remove from the sequence.
+        """
         cls.events.remove(event)
     
     @classmethod
     def add_event(cls, event:Event):
-        """Add an event to the sequence."""
+        """Add a new event to the sequence.
+        
+        Args:
+            event (Event): The event to add to the sequence.
+        """
         cls.events.append(event)
     
     @classmethod
     def get_events(cls):
-        """Get the current events."""
+        """Retrieve the current list of events.
+        
+        Returns:
+            list[Event]: The list of all events in the sequence.
+        """
         return cls.events
 
     @classmethod
     def clear_events(cls):
-        """Clear all events."""
+        """Clear all events from the sequence.
+        
+        This removes all events and resets the sequence.
+        """
         cls.events.clear()
 
 class MoveEvent(Event):
-    """Event for moving the player."""
+    """Event triggered when the player wants to move to a different location.
+    
+    This event is created when the player issues a movement command and contains
+    the name of the destination.
+    
+    Attributes:
+        target_place_name (str): The name of the location to move to.
+    """
     def __init__(self, target_place_name: str):
+        """Initialize a move event.
+        
+        Args:
+            target_place_name (str): The name of the destination location.
+        """
         super().__init__({"target_place_name": target_place_name})
         self.target_place_name = target_place_name
 
 class UseItemEvent(Event):
-    """Event for using an item."""
+    """Event triggered when the player wants to use an item on a target.
+    
+    This event is created when the player issues a use command, specifying which
+    item to use and what object to use it on.
+    
+    Attributes:
+        item_name (str): The name of the item in the player's inventory.
+        target_object_name (str): The name of the object to use the item on.
+    """
     def __init__(self, item_name: str, target_object_name: str):
+        """Initialize a use item event.
+        
+        Args:
+            item_name (str): The name of the item to use.
+            target_object_name (str): The name of the target object.
+        """
         super().__init__({"item_name": item_name, "target_object_name": target_object_name})
         self.item_name = item_name
         self.target_object_name = target_object_name
 
 class InspectEvent(Event):
-    """Event for inspecting an object."""
+    """Event triggered when the player wants to examine an object or location.
+    
+    This event allows the player to view detailed descriptions of objects, items,
+    rooms, and places.
+    
+    Attributes:
+        target_object_name (str): The name of the object to inspect.
+    """
     def __init__(self, target_object_name: str):
+        """Initialize an inspect event.
+        
+        Args:
+            target_object_name (str): The name of the object to inspect.
+        """
         super().__init__({"target_object_name": target_object_name})
         self.target_object_name = target_object_name
 
 class TakeItemEvent(Event):
-    """Event for taking an item."""
+    """Event triggered when the player picks up an item.
+    
+    This event is created when the player issues a take/pick up command for an item
+    in their current location.
+    
+    Attributes:
+        item_name (str): The name of the item to take.
+    """
     def __init__(self, item_name: str):
+        """Initialize a take item event.
+        
+        Args:
+            item_name (str): The name of the item to pick up.
+        """
         super().__init__({"item_name": item_name})
         self.item_name = item_name
 
 class ThinkEvent(Event):
-    """Event for thinking about something."""
+    """Event triggered when the player thinks/reflects.
+    
+    This event gives the player a clue or thought, either from their internal
+    thoughts or from game clues.
+    """
     def __init__(self):
+        """Initialize a think event."""
         super().__init__({})
 
 class HelpEvent(Event):
-    """Event for asking for help."""
+    """Event triggered when the player asks for help.
+    
+    This event displays the game tutorial and help information.
+    """
     def __init__(self):
+        """Initialize a help event."""
         super().__init__({})
 
 class StorySituation:
+    """Represents a story event with a trigger condition and an effect.
+    
+    Story situations are used to implement narrative branching and special events
+    in the game. When the trigger event occurs, the associated effect is executed.
+    
+    Attributes:
+        id (str): Unique identifier for this story situation.
+        trigger_event (Event): The event that must occur to trigger this situation.
+        effect (Callable): Function to execute when the trigger occurs.
+        solve_normally (bool): Whether to also apply standard event solving after the effect.
+    """
     def __init__(self, id: str, trigger_event: Event, effect: Callable[[Game, Player], None], solve_normally: bool = False):
+        """Initialize a story situation.
+        
+        Args:
+            id (str): Unique identifier for the situation.
+            trigger_event (Event): The event that triggers this situation.
+            effect (Callable): Function taking (Game, Player) parameters to execute.
+            solve_normally (bool): Whether to also solve the event normally. Defaults to False.
+        """
         self.id = id
         self.trigger_event = trigger_event
         self.effect = effect
         self.solve_normally = solve_normally
 
     def is_trigger(self, event: Event) -> bool:
-        """Check if the given event matches the trigger event."""
+        """Check if the given event matches the trigger event.
+        
+        Args:
+            event (Event): The event to check.
+            
+        Returns:
+            bool: True if the event matches the trigger event.
+        """
         return Event.match(self.trigger_event, event)
 
     def execute_effect(self, game: Game, player: Player):
-        """Execute the effect of the story situation."""
+        """Execute the effect of the story situation.
+        
+        Args:
+            game (Game): The game instance.
+            player (Player): The player instance.
+        """
         self.effect(game, player)
 
 def is_story(game: Game, event:Event, story_situations: list[StorySituation]) -> bool:
-    """Check if an event is a story event by comparing it against the triggers of the story situations."""
+    """Check if an event is a story event by comparing it against the triggers of the story situations.
+    
+    Determines whether the given event matches any untriggered story situation trigger.
+    
+    Args:
+        game (Game): The game instance.
+        event (Event): The event to check.
+        story_situations (list[StorySituation]): List of all possible story situations.
+        
+    Returns:
+        bool: True if the event matches an untriggered story situation, False otherwise.
+    """
     for situation in story_situations:
         if situation.is_trigger(event)and not situation.id in game.triggered_events:
             return True
     return False
 
 def solve_story(game:Game, player:Player, situation:StorySituation):
-    """Check the current events against the story situations and execute the effects of any triggered situations."""
+    """Execute the effect of a triggered story situation and update game state.
+    
+    This function handles the execution of a story situation's effect, marks the
+    situation as triggered, and optionally applies standard event solving.
+    
+    Args:
+        game (Game): The game instance.
+        player (Player): The player instance.
+        situation (StorySituation): The story situation to execute.
+    """
     #Check if an event triggers any story situation and execute its effect if it does
     situation.execute_effect(game, player)
     game.trigger_situation(situation.id)
@@ -112,7 +268,19 @@ def solve_story(game:Game, player:Player, situation:StorySituation):
         solve_standard_event(game, player, situation.trigger_event)
 
 def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool, str]:
-    """Solve a standard event and return a tuple indicating if the screen should be refreshed."""
+    """Process and solve a standard game event.
+    
+    Handles the game logic for standard events (move, take item, inspect, think, help).
+    Returns information about whether the screen needs refreshing and a message for the player.
+    
+    Args:
+        game (Game): The game instance.
+        player (Player): The player instance.
+        event (Event): The event to process.
+        
+    Returns:
+        tuple[bool, str]: (screen_refresh_needed, message_to_player)
+    """
     if isinstance(event, MoveEvent):
         target_place_name = event.target_place_name
         room = player.current_room
@@ -179,6 +347,9 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
         if room.name == target_object_name:
             return False, room.description
         
+        if player.name == target_object_name:
+            return False, player.description
+        
         return False, f"No hay nada llamado {target_object_name} justo aquí."
 
     elif isinstance(event, HelpEvent):
@@ -193,7 +364,17 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
         error_proceding(game, player, event)
 
 def process_input(response:str)->bool:
-    """Process the player's input and return the corresponding event."""
+    """Parse player input and create corresponding game events.
+    
+    Processes player text input by parsing commands and creating appropriate event
+    objects. Supports commands: MOVERSE A, TOMAR, EXAMINAR, AYUDA, PENSAR.
+    
+    Args:
+        response (str): Raw text input from the player.
+        
+    Returns:
+        bool: True if input was valid and an event was created, False otherwise.
+    """
     response_stripped = response.strip()
     response_upper = response_stripped.upper()
     

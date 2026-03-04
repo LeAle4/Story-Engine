@@ -5,11 +5,23 @@ import time
 from typing import TYPE_CHECKING, NoReturn
 
 if TYPE_CHECKING:
-    from Engine.game1 import Game, Player
+    from Engine.elements import Game, Player
     from Engine.logic import Event
 
 def error_proceding(game: Game, player: Player, event: Event) -> NoReturn:
-    """Handle an error by saving the game and generating a crash report."""
+    """Handle an error by saving the game and generating a crash report.
+    
+    This function is called when an unexpected error occurs during game execution.
+    It saves the current game state, generates a detailed crash report, and exits.
+    
+    Args:
+        game (Game): The game instance.
+        player (Player): The player instance.
+        event (Event): The event that caused the error.
+        
+    Raises:
+        SystemExit: Always exits with code 1 after showing error message.
+    """
     game.save_game("error_save.json")
     generate_crash_report(game, player, event)
     print("Error Fatal: Algo hice mal en el código, se debe guardó el juego y se generó un reporte de error para que pueda arreglarlo, mándamelo nada más puedas, sorryyy :c.")
@@ -18,7 +30,19 @@ def error_proceding(game: Game, player: Player, event: Event) -> NoReturn:
     exit(1)
 
 def generate_crash_report(game: Game, player: Player, event: Event) -> str:
-    """Generate a comprehensive crash report including all game information at the point of crash."""
+    """Generate a comprehensive crash report including all game information at the point of crash.
+    
+    Creates a detailed report containing player state, event details, triggered events,
+    and complete map state. Saves the report to 'crash_report.txt' for debugging.
+    
+    Args:
+        game (Game): The game instance.
+        player (Player): The player instance.
+        event (Event): The event that triggered the error.
+        
+    Returns:
+        str: JSON-formatted string containing all crash report data.
+    """
     report_data = {
         "player_state": {
             "name": player.name,
