@@ -186,6 +186,15 @@ class HelpEvent(Event):
         """Initialize a help event."""
         super().__init__({})
 
+class ExitEvent(Event):
+    """Event triggered when the player wants to exit the game.
+    
+    This event is created when the player issues an exit/quit command.
+    """
+    def __init__(self):
+        """Initialize an exit event."""
+        super().__init__({})
+
 class StorySituation:
     """Represents a story event with a trigger condition and an effect.
     
@@ -395,6 +404,9 @@ def process_input(response:str)->bool:
         return True
     elif response_upper == "PENSAR":
         EventSeq.add_event(ThinkEvent())
+        return True
+    elif response_upper == "SALIR":
+        EventSeq.add_event(ExitEvent())
         return True
     else:
         return False

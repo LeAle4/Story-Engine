@@ -9,13 +9,13 @@ long_description = (this_directory / "README.md").read_text(encoding="utf-8") if
 
 setup(
     name="Engine",
-    version="0.1.0",
+    version="1.0.0",
     author="Alejandro Velázquez",
     author_email="avelazquez@gmail.com",
     description="A text-adventure game engine for creating interactive fiction",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/engine",
+    url="https://github.com/LeAle4/Story-Engine",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
