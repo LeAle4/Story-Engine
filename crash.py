@@ -73,7 +73,7 @@ def generate_crash_report(game: Game, player: Player, event: Event) -> str:
         }
     }
     
-    with open("crash_report.txt", "w") as f:
+    with open("game_error_report.txt", "w") as f:
         f.write("=" * 80 + "\n")
         f.write("CRASH REPORT\n")
         f.write("=" * 80 + "\n\n")

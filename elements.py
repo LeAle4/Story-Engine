@@ -67,21 +67,29 @@ class Game:
         with open(filename, 'w') as file:
             json.dump(game_state, file, indent=4)
     
-    def load_game(self, filename: str):
+    @staticmethod
+    def load_game(filename: str) -> Game:
         """Load a game state from a file.
         
-        Deserializes game state from JSON and restores the game to that state.
+        Deserializes game state from JSON and creates a new Game instance.
         
         Args:
             filename (str): The filename containing the saved game state.
+            
+        Returns:
+            Game: A new Game instance with the loaded state.
         """
         with open(filename, 'r') as file:
             game_state = json.load(file)
         
-        self.map = Map.load_from_json_object(game_state['map'])
-        self.player = Player.load_from_json_object(game_state['player'], self.map)
-        self.triggered_events = game_state.get('triggered_events', [])
-        self.clues = [Clue.load_from_json_object(clue_data) for clue_data in game_state.get('clues', [])]
+        game_map = Map.load_from_json_object(game_state['map'])
+        player = Player.load_from_json_object(game_state['player'], game_map)
+        clues = [Clue.load_from_json_object(clue_data) for clue_data in game_state.get('clues', [])]
+        
+        game = Game(game_map, player, clues)
+        game.triggered_events = game_state.get('triggered_events', [])
+        
+        return game
 
 class Clue:
     """Clue that can be discovered in the game.

@@ -8,8 +8,8 @@ this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text(encoding="utf-8") if (this_directory / "README.md").exists() else ""
 
 setup(
-    name="Engine",
-    version="1.0.0",
+    name="PyStory",
+    version="1.0.1",
     author="Alejandro Velázquez",
     author_email="avelazquez@gmail.com",
     description="A text-adventure game engine for creating interactive fiction",
