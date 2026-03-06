@@ -363,9 +363,6 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
             return False, player.description
         
         return False, f"No hay nada llamado {target_object_name} justo aquí."
-
-    elif isinstance(event, HelpEvent):
-        return True, TUTORIAL
     
     elif isinstance(event, ThinkEvent):
         if random.random() < CLUE_CHANCE:

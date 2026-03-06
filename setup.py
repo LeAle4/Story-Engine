@@ -1,6 +1,6 @@
 """Setup script for the Engine package."""
 
-from setuptools import setup, find_packages
+from setuptools import setup
 from pathlib import Path
 
 # Read the README file
@@ -9,14 +9,16 @@ long_description = (this_directory / "README.md").read_text(encoding="utf-8") if
 
 setup(
     name="PyStory",
-    version="1.1.3",
+    version="1.1.4",
     author="Alejandro Velázquez",
     author_email="avelazquez@gmail.com",
     description="A text-adventure game engine for creating interactive fiction",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/LeAle4/Story-Engine",
-    packages=find_packages(),
+    # Source files live next to setup.py, so map the package name to "." explicitly.
+    packages=["pyStory"],
+    package_dir={"pyStory": "."},
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",

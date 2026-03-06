@@ -1,26 +1,53 @@
-"""A text-adventure game engine for creating interactive fiction."""
+"""Public package API for pyStory."""
 
-from .game import (
-    GameObject,
-    Item,
-    Place,
-    Room,
-    Area,
-    Player,
-    find_object_by_name,
-    savegame,
-    loadgame,
+from pathlib import Path
+
+from .elements import Area, Clue, Game, GameObject, Item, Map, NPC, Place, Player, Room
+from .logic import (
+    Event,
+    EventSeq,
+    ExitEvent,
+    HelpEvent,
+    InspectEvent,
+    MoveEvent,
+    StorySituation,
+    TakeItemEvent,
+    ThinkEvent,
+    UseItemEvent,
+    find_story,
+    process_input,
+    solve_standard_event,
+    solve_story,
 )
 
-__version__ = "0.1.0"
+__version__ = "1.1.4"
+
 __all__ = [
-    "GameObject",
-    "Item",
-    "Place",
-    "Room",
     "Area",
+    "Clue",
+    "Event",
+    "EventSeq",
+    "ExitEvent",
+    "Game",
+    "GameObject",
+    "HelpEvent",
+    "InspectEvent",
+    "Item",
+    "Map",
+    "MoveEvent",
+    "NPC",
+    "Place",
     "Player",
-    "find_object_by_name",
-    "savegame",
+    "Room",
+    "StorySituation",
+    "TakeItemEvent",
+    "ThinkEvent",
+    "TUTORIAL",
+    "UseItemEvent",
+    "find_story",
     "loadgame",
+    "process_input",
+    "savegame",
+    "solve_standard_event",
+    "solve_story",
 ]
