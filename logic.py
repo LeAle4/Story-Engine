@@ -5,7 +5,6 @@ import random
 from typing import TYPE_CHECKING, Callable
 
 from pyStory.crash import error_proceding
-from pyStory.text import TUTORIAL
 
 #Fixes circular imports
 if TYPE_CHECKING:
@@ -361,6 +360,9 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
         
         if player.name == target_object_name:
             return False, player.description
+        
+        if target_object_name in player.get_item_names():
+            return False, player.get_item_by_name(target_object_name).description
         
         return False, f"No hay nada llamado {target_object_name} justo aquí."
     

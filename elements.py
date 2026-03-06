@@ -237,6 +237,18 @@ class Player(GameObject):
         """
         return self.current_place.name.lower() == place_name.lower()
 
+    def get_item_names(self):
+        """Get a list of the names of the items in the player's inventory.
+        
+        Returns:
+            list[str]: List of item names in the player's inventory.
+        """
+        return [item.name for item in self.items]
+    
+    def get_item_from_name(self, item_name:str):
+        return next((item for item in self.items if item.name.lower() == item_name.lower()), None)
+
+
     def as_saveable_object(self) -> dict[str, object]:
         """Return a dictionary representation of the player for saving.
         
