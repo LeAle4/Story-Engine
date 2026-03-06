@@ -235,7 +235,7 @@ class Player(GameObject):
         Returns:
             bool: True if the player's current place matches the given name.
         """
-        return self.current_place.name == place_name
+        return self.current_place.name.lower() == place_name.lower()
 
     def as_saveable_object(self) -> dict[str, object]:
         """Return a dictionary representation of the player for saving.
@@ -406,7 +406,7 @@ class Place(GameObject):
         Returns:
             bool: True if an item with that name exists in this place.
         """
-        return any(item.name == item_name for item in self.item_list)
+        return any(item.name.lower() == item_name.lower() for item in self.item_list)
 
     def get_item_by_name(self, item_name: str) -> Item | None:
         """Get an item by name from the place.
@@ -418,7 +418,7 @@ class Place(GameObject):
             Item | None: The item if found, None otherwise.
         """
         for item in self.item_list:
-            if item.name == item_name:
+            if item.name.lower() == item_name.lower():
                 return item
         return None
 
@@ -473,7 +473,7 @@ class Room(Place):
         Returns:
             bool: True if a place with that name exists in this room.
         """
-        return any(place.name == place_name for place in self.place_list)
+        return any(place.name.lower() == place_name.lower() for place in self.place_list)
     
     def get_place(self, place_name: str) -> Place | None:
         """Get a place by name from the room.
@@ -485,7 +485,7 @@ class Room(Place):
             Place | None: The place if found, None otherwise.
         """
         for place in self.place_list:
-            if place.name == place_name:
+            if place.name.lower() == place_name.lower():
                 return place
 
     def gets_discovered(self):
@@ -557,7 +557,7 @@ class Area(GameObject):
         Returns:
             bool: True if a room with that name exists in this area.
         """
-        return any(room.name == room_name for room in self.room_list)
+        return any(room.name.lower() == room_name.lower() for room in self.room_list)
 
     def get_room_by_name(self, room_name: str) -> Room | None:
         """Get a room by its name.
@@ -568,7 +568,7 @@ class Area(GameObject):
         Returns:
             Room | None: The room if found, None otherwise.
         """
-        return next((room for room in self.room_list if room.name == room_name), None)
+        return next((room for room in self.room_list if room.name.lower() == room_name.lower()), None)
 
     def as_saveable_object(self) -> dict[str, object]:
         base_dict = super().as_saveable_object()
