@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 import random
 
 class Game:
@@ -68,7 +69,7 @@ class Game:
             json.dump(game_state, file, indent=4)
     
     @staticmethod
-    def load_game(filename: str) -> Game:
+    def load_game(filename: str | Path) -> Game:
         """Load a game state from a file.
         
         Deserializes game state from JSON and creates a new Game instance.
@@ -326,7 +327,7 @@ class Item(GameObject):
         use_times (int): How many times the item can be used.
     """
 
-    def __init__(self, name: str, description: str, id: str, used_msg: str, amount: int = 1, use_times:int = 1):
+    def __init__(self, name: str, description: str, id: str, takeable:bool = False, amount: int = 1, use_times:int = 1):
         """Initialize with `name`, `description`, and `id`.
         
         Args:
@@ -338,16 +339,16 @@ class Item(GameObject):
             use_times (int): Number of times item can be used. Defaults to 1.
         """
         super().__init__(name, description, id)
-        self.used_msg = used_msg if used_msg else f"Usaste {name}."
         self.amount = amount
         self.use_times = use_times
+        self.takeable = takeable
     
     def as_saveable_object(self) -> dict[str, object]:
         base_dict = super().as_saveable_object()
         base_dict.update({
-            'used_msg': self.used_msg,
             'amount': self.amount,
-            'use_times': self.use_times
+            'use_times': self.use_times,
+            'takeable': self.takeable
         })
         return base_dict
 
@@ -357,9 +358,9 @@ class Item(GameObject):
             name=json_object['name'],
             description=json_object['description'],
             id=json_object['id'],
-            used_msg=json_object['used_msg'],
             amount=json_object['amount'],
-            use_times=json_object['use_times']
+            use_times=json_object['use_times'],
+            takeable=json_object['takeable']
         )
 
 class Place(GameObject):

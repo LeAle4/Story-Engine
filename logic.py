@@ -329,9 +329,12 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
             item = place.get_item_by_name(item_name)
             if item is None:
                 error_proceding(game, player, event)
-            player.items.append(item)
-            place.item_list.remove(item)
-            return False, f"Has tomado {item_name}."
+            if item.takeable:
+                player.items.append(item)
+                place.item_list.remove(item)
+                return False, f"Has tomado {item_name}."
+            else:
+                return False, f"No creo que pueda tomar {item_name}."
         else:
             return False, f"No creo que haya un objeto llamado {item_name} justo aquí."
     
