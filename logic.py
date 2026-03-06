@@ -109,6 +109,25 @@ class MoveEvent(Event):
         super().__init__({"target_place_name": target_place_name})
         self.target_place_name = target_place_name
 
+class HasMovedEvent(Event):
+    """Event triggered after the player has successfully moved to a new location.
+    
+    This event is created after a movement action has been completed, allowing the game
+    to react to the player's arrival at a new location. It differs from MoveEvent, which
+    represents the intent to move before the action is executed.
+    
+    Attributes:
+        target_place_name (str): The name of the location the player has moved to.
+    """
+    def __init__(self, target_place_name:str):
+        """Initialize a has moved event.
+        
+        Args:
+            target_place_name (str): The name of the destination location.
+        """
+        super().__init__({"target_place_name": target_place_name})
+        self.target_place_name = target_place_name
+
 class UseItemEvent(Event):
     """Event triggered when the player wants to use an item on a target.
     
@@ -303,6 +322,7 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
                 error_proceding(game, player, event)
             player.current_place = new_place
             new_place.gets_discovered()
+            EventSeq.add_event(HasMovedEvent(target_place_name))
             return False, f"Te moviste hacia {target_place_name}."
         
         if area.has_room_from_name(target_place_name):
@@ -351,17 +371,17 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
             return False, item.description
         
         #Check if the object is the current place
-        if place.name == target_object_name:
+        if place.name.lower() == target_object_name.lower():
             return False, place.description
         
         #Check if the object is the current room
-        if room.name == target_object_name:
+        if room.name.lower() == target_object_name.lower():
             return False, room.description
         
-        if player.name == target_object_name:
+        if player.name.lower() == target_object_name.lower():
             return False, player.description
         
-        if target_object_name in player.get_item_names():
+        if any(item_name.lower() == target_object_name.lower() for item_name in player.get_item_names()):
             return False, player.get_item_by_name(target_object_name).description
         
         return False, f"No hay nada llamado {target_object_name} justo aquí."

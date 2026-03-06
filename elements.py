@@ -245,7 +245,7 @@ class Player(GameObject):
         """
         return [item.name for item in self.items]
     
-    def get_item_from_name(self, item_name:str):
+    def get_item_by_name(self, item_name:str):
         return next((item for item in self.items if item.name.lower() == item_name.lower()), None)
 
 
