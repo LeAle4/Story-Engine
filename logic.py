@@ -241,7 +241,7 @@ class StorySituation:
         """
         self.effect(game, player)
 
-def is_story(game: Game, event:Event, story_situations: list[StorySituation]) -> bool:
+def find_story(game: Game, event:Event, story_situations: list[StorySituation]) -> StorySituation|None:
     """Check if an event is a story event by comparing it against the triggers of the story situations.
     
     Determines whether the given event matches any untriggered story situation trigger.
@@ -256,8 +256,8 @@ def is_story(game: Game, event:Event, story_situations: list[StorySituation]) ->
     """
     for situation in story_situations:
         if situation.is_trigger(event)and not situation.id in game.triggered_events:
-            return True
-    return False
+            return situation
+    return None
 
 def solve_story(game:Game, player:Player, situation:StorySituation):
     """Execute the effect of a triggered story situation and update game state.

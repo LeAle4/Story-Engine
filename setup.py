@@ -9,7 +9,7 @@ long_description = (this_directory / "README.md").read_text(encoding="utf-8") if
 
 setup(
     name="PyStory",
-    version="1.1.2",
+    version="1.1.3",
     author="Alejandro Velázquez",
     author_email="avelazquez@gmail.com",
     description="A text-adventure game engine for creating interactive fiction",
