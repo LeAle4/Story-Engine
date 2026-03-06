@@ -206,7 +206,7 @@ class Player(GameObject):
         current_area (Area): The area containing the current room.
     """
 
-    def __init__(self, name: str, description: str, id: str, items: list[Item], thoughts: tuple[str],current_place: Place, current_room: Room, current_area: Area):
+    def __init__(self, name: str, description: str, id: str, items: list[Item], thoughts: tuple[str,...],current_place: Place, current_room: Room, current_area: Area):
         """Initialize with `name`, `description`, and `id`.
         
         Args:

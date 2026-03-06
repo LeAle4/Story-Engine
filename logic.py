@@ -4,12 +4,12 @@ import random
 
 from typing import TYPE_CHECKING, Callable
 
-from Engine.crash import error_proceding
-from Engine.text import TUTORIAL
+from pyStory.crash import error_proceding
+from pyStory.text import TUTORIAL
 
 #Fixes circular imports
 if TYPE_CHECKING:
-    from Engine.elements import Game, Player
+    from pyStory.elements import Game, Player
 
 CLUE_CHANCE = 0.3
 
@@ -374,6 +374,7 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
             return False, game.throw_clue()
     else:
         error_proceding(game, player, event)
+        return True, "Ocurrió un error al procesar tu acción, se generó un archivo, mándamelo pls klsajfñls"
 
 def process_input(response:str)->bool:
     """Parse player input and create corresponding game events.
