@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import time
+import traceback
 from typing import TYPE_CHECKING, NoReturn
 
 if TYPE_CHECKING:
@@ -43,6 +44,12 @@ def generate_crash_report(game: Game, player: Player, event: Event) -> str:
     Returns:
         str: JSON-formatted string containing all crash report data.
     """
+    # Prefer the active exception traceback; if none exists, include the current call stack.
+    exception_traceback = traceback.format_exc()
+    if exception_traceback.strip() == "NoneType: None":
+        exception_traceback = ""
+
+    stack_trace = "".join(traceback.format_stack())
     report_data = {
         "player_state": {
             "name": player.name,
@@ -70,6 +77,10 @@ def generate_crash_report(game: Game, player: Player, event: Event) -> str:
         "game_state": {
             "map": game.map.as_saveable_object(),
             "triggered_events": game.triggered_events
+        },
+        "traceback": {
+            "exception_traceback": exception_traceback,
+            "stack_trace": stack_trace
         }
     }
     
@@ -92,6 +103,21 @@ def generate_crash_report(game: Game, player: Player, event: Event) -> str:
         f.write("-" * 80 + "\n")
         f.write(f"Event Type: {type(event).__name__}\n")
         f.write(f"Event Parameters: {json.dumps(event.params, indent=2, default=str)}\n")
+        f.write("\n")
+
+        f.write("TRACEBACK:\n")
+        f.write("-" * 80 + "\n")
+        if exception_traceback:
+            f.write("Exception Traceback:\n")
+            f.write(exception_traceback)
+            if not exception_traceback.endswith("\n"):
+                f.write("\n")
+        else:
+            f.write("No active exception traceback was available at crash time.\n")
+        f.write("\nCurrent Stack Trace:\n")
+        f.write(stack_trace)
+        if not stack_trace.endswith("\n"):
+            f.write("\n")
         f.write("\n")
         
         f.write("TRIGGERED EVENTS:\n")

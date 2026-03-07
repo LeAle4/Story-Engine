@@ -84,6 +84,27 @@ class EventSeq:
         return cls.events
 
     @classmethod
+    def has_events(cls) -> bool:
+        """Check if there are any events currently in the sequence.
+        
+        Returns:
+            bool: True if there are events in the sequence, False otherwise.
+        """
+        return len(cls.events) > 0
+
+    @classmethod
+    def get_oldest_event(cls) -> Event|None:
+        """Get the oldest event in the sequence without removing it.
+        
+        Returns:
+            Event|None: The oldest event if the sequence is not empty, None otherwise.
+        """
+        if cls.events:
+            return cls.events[0]
+        else:
+            return None
+
+    @classmethod
     def clear_events(cls):
         """Clear all events from the sequence.
         
@@ -333,6 +354,7 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
                 player.current_room = target_room
                 player.current_place = target_room
                 target_room.gets_discovered()
+                EventSeq.add_event(HasMovedEvent(target_place_name))
                 return True, f"Te moviste hacia {target_place_name}."
             elif target_room.isknown:
                 return False, f"No creo que pueda ir hacia {target_place_name} desde aquí."
@@ -388,9 +410,9 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
     
     elif isinstance(event, ThinkEvent):
         if random.random() < CLUE_CHANCE:
-            return False, random.choice(player.thoughts)
-        else:
             return False, game.throw_clue()
+        else:
+            return False, random.choice(player.thoughts)
     else:
         error_proceding(game, player, event)
         return True, "Ocurrió un error al procesar tu acción, se generó un archivo, mándamelo pls klsajfñls"
@@ -399,7 +421,7 @@ def process_input(response:str)->bool:
     """Parse player input and create corresponding game events.
     
     Processes player text input by parsing commands and creating appropriate event
-    objects. Supports commands: MOVERSE A, TOMAR, EXAMINAR, AYUDA, PENSAR.
+    objects. Supports commands: MOVERSE A, TOMAR, USAR _ EN _, EXAMINAR, AYUDA, PENSAR.
     
     Args:
         response (str): Raw text input from the player.
@@ -418,6 +440,22 @@ def process_input(response:str)->bool:
         item_name = response_stripped[len("TOMAR "):].strip()
         EventSeq.add_event(TakeItemEvent(item_name))
         return True
+    elif response_upper.startswith("USAR "):
+        use_payload = response_stripped[len("USAR "):].strip()
+        use_payload_upper = use_payload.upper()
+        separator = " EN "
+        if separator not in use_payload_upper:
+            return False
+
+        separator_index = use_payload_upper.find(separator)
+        item_name = use_payload[:separator_index].strip()
+        target_object_name = use_payload[separator_index + len(separator):].strip()
+        if not item_name or not target_object_name:
+            return False
+
+        EventSeq.add_event(UseItemEvent(item_name, target_object_name))
+        return True
+
     elif response_upper.startswith("EXAMINAR "):
         target_object_name = response_stripped[len("EXAMINAR "):].strip()
         EventSeq.add_event(InspectEvent(target_object_name))
