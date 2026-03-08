@@ -246,17 +246,19 @@ class StorySituation:
         effect (Callable): Function to execute when the trigger occurs.
         solve_normally (bool): Whether to also apply standard event solving after the effect.
     """
-    def __init__(self, id: str, trigger_event: Event, effect: Callable[[Game, Player], None], solve_normally: bool = False):
+    def __init__(self, id: str, trigger_event: Event, required_flags: set[str], effect: Callable[[Game, Player], None], solve_normally: bool = False):
         """Initialize a story situation.
         
         Args:
             id (str): Unique identifier for the situation.
             trigger_event (Event): The event that triggers this situation.
+            required_flags (set[str]): Flags that must be present for the situation to trigger.
             effect (Callable): Function taking (Game, Player) parameters to execute.
             solve_normally (bool): Whether to also solve the event normally. Defaults to False.
         """
         self.id = id
         self.trigger_event = trigger_event
+        self.required_flags = required_flags
         self.effect = effect
         self.solve_normally = solve_normally
 
@@ -294,7 +296,7 @@ def find_story(game: Game, event:Event, story_situations: list[StorySituation]) 
         bool: True if the event matches an untriggered story situation, False otherwise.
     """
     for situation in story_situations:
-        if situation.is_trigger(event)and not situation.id in game.triggered_events:
+        if situation.is_trigger(event) and not (situation.id in game.triggered_events) and situation.required_flags.issubset(set(game.triggered_events)):
             return situation
     return None
 

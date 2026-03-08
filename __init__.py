@@ -1,12 +1,11 @@
 """Public package API for pyStory."""
 
-from pathlib import Path
-
 from .elements import Area, Clue, Game, GameObject, Item, Map, NPC, Place, Player, Room
 from .logic import (
     Event,
     EventSeq,
     ExitEvent,
+    HasMovedEvent,
     HelpEvent,
     InspectEvent,
     MoveEvent,
@@ -20,7 +19,7 @@ from .logic import (
     solve_story,
 )
 
-__version__ = "1.1.7"
+__version__ = "1.1.8"
 
 __all__ = [
     "Area",
@@ -28,6 +27,7 @@ __all__ = [
     "Event",
     "EventSeq",
     "ExitEvent",
+    "HasMovedEvent",
     "Game",
     "GameObject",
     "HelpEvent",
@@ -42,12 +42,9 @@ __all__ = [
     "StorySituation",
     "TakeItemEvent",
     "ThinkEvent",
-    "TUTORIAL",
     "UseItemEvent",
     "find_story",
-    "loadgame",
     "process_input",
-    "savegame",
     "solve_standard_event",
     "solve_story",
 ]
