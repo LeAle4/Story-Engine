@@ -8,7 +8,7 @@ from pyStory.crash import error_proceding
 
 #Fixes circular imports
 if TYPE_CHECKING:
-    from pyStory.elements import Game, Player
+    from pyStory.elements import Game
 
 CLUE_CHANCE = 0.3
 
@@ -246,14 +246,14 @@ class StorySituation:
         effect (Callable): Function to execute when the trigger occurs.
         solve_normally (bool): Whether to also apply standard event solving after the effect.
     """
-    def __init__(self, id: str, trigger_events: tuple[Event,...], required_flags: set[str], effect: Callable[[Game, Player], None], solve_normally: bool = False):
+    def __init__(self, id: str, trigger_events: tuple[Event,...], required_flags: set[str], effect: Callable[[Game], None], solve_normally: bool = False):
         """Initialize a story situation.
         
         Args:
             id (str): Unique identifier for the situation.
             trigger_events (tuple[Event]): The events that can trigger this situation.
             required_flags (set[str]): Flags that must be present for the situation to trigger.
-            effect (Callable): Function taking (Game, Player) parameters to execute.
+            effect (Callable): Function taking a Game parameter to execute.
             solve_normally (bool): Whether to also solve the event normally. Defaults to False.
         """
         self.id = id
@@ -273,14 +273,13 @@ class StorySituation:
         """
         return any(Event.match(trigger_event, event) for trigger_event in self.trigger_events)
 
-    def execute_effect(self, game: Game, player: Player):
+    def execute_effect(self, game: Game):
         """Execute the effect of the story situation.
         
         Args:
             game (Game): The game instance.
-            player (Player): The player instance.
         """
-        self.effect(game, player)
+        self.effect(game)
 
 def find_story(game: Game, event:Event, story_situations: list[StorySituation]) -> tuple[StorySituation|None, bool]:
     """Check if an event is a story event by comparing it against the triggers of the story situations.
@@ -303,7 +302,7 @@ def find_story(game: Game, event:Event, story_situations: list[StorySituation]) 
                 return situation, False
     return None, True
 
-def solve_story(game:Game, player:Player, situation:StorySituation, event:Event):
+def solve_story(game:Game, situation:StorySituation, event:Event):
     """Execute the effect of a triggered story situation and update game state.
     
     This function handles the execution of a story situation's effect, marks the
@@ -311,16 +310,15 @@ def solve_story(game:Game, player:Player, situation:StorySituation, event:Event)
     
     Args:
         game (Game): The game instance.
-        player (Player): The player instance.
         situation (StorySituation): The story situation to execute.
     """
     #Check if an event triggers any story situation and execute its effect if it does
-    situation.execute_effect(game, player)
+    situation.execute_effect(game)
     game.trigger_situation(situation.id)
     if situation.solve_normally:
-        solve_standard_event(game, player, event)
+        solve_standard_event(game, event)
 
-def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool, str]:
+def solve_standard_event(game: Game, event: Event) -> tuple[bool, str]:
     """Process and solve a standard game event.
     
     Handles the game logic for standard events (move, take item, inspect, think, help).
@@ -328,7 +326,6 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
     
     Args:
         game (Game): The game instance.
-        player (Player): The player instance.
         event (Event): The event to process.
         
     Returns:
@@ -336,17 +333,17 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
     """
     if isinstance(event, MoveEvent):
         target_place_name = event.target_place_name
-        room = player.current_room
-        place = player.current_place
-        area = player.current_area
-        if player.in_place(target_place_name):
+        room = game.player.current_room
+        place = game.player.current_place
+        area = game.player.current_area
+        if game.player.in_place(target_place_name) or game.player.in_room(target_place_name):
             return False, "Ya estas aquí."
         
         if room.has_place(target_place_name):
             new_place = room.get_place(target_place_name)
             if new_place is None:
-                error_proceding(game, player, event)
-            player.current_place = new_place
+                error_proceding(game, game.player, event)
+            game.player.current_place = new_place
             new_place.gets_discovered()
             EventSeq.add_event(HasMovedEvent(target_place_name))
             return False, f"Te moviste hacia {target_place_name}."
@@ -354,10 +351,10 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
         if area.has_room_from_name(target_place_name):
             target_room = area.get_room_by_name(target_place_name)
             if target_room is None:
-                error_proceding(game, player, event)
+                error_proceding(game, game.player, event)
             if area.is_connected(target_room, room):
-                player.current_room = target_room
-                player.current_place = target_room
+                game.player.current_room = target_room
+                game.player.current_place = target_room
                 target_room.gets_discovered()
                 EventSeq.add_event(HasMovedEvent(target_place_name))
                 return True, f"Te moviste hacia {target_place_name}."
@@ -370,13 +367,13 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
     
     elif isinstance(event, TakeItemEvent):
         item_name = event.item_name
-        place = player.current_place
+        place = game.player.current_place
         if place.has_item_by_name(item_name):
             item = place.get_item_by_name(item_name)
             if item is None:
-                error_proceding(game, player, event)
+                error_proceding(game, game.player, event)
             if item.takeable:
-                player.items.append(item)
+                game.player.items.append(item)
                 place.item_list.remove(item)
                 return False, f"Has tomado {item_name}."
             else:
@@ -386,15 +383,15 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
     
     elif isinstance(event, InspectEvent):
         target_object_name = event.target_object_name
-        place = player.current_place
-        room = player.current_room
-        area = player.current_area
+        place = game.player.current_place
+        room = game.player.current_room
+        area = game.player.current_area
 
         #Check if the object is in the current place
         if place.has_item_by_name(target_object_name):
             item = place.get_item_by_name(target_object_name)
             if item is None:
-                error_proceding(game, player, event)
+                error_proceding(game, game.player, event)
             return False, item.description
         
         #Check if the object is the current place
@@ -406,11 +403,14 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
             return False, room.description
         
         #Si nos estamos examinando
-        if player.name.lower() == target_object_name.lower():
-            return False, player.description
+        if game.player.name.lower() == target_object_name.lower():
+            return False, game.player.description
         
-        if any(item_name.lower() == target_object_name.lower() for item_name in player.get_item_names()):
-            return False, player.get_item_by_name(target_object_name).description
+        if any(item_name.lower() == target_object_name.lower() for item_name in game.player.get_item_names()):
+            item = game.player.get_item_by_name(target_object_name)
+            if item is None:
+                error_proceding(game, game.player, event)
+            return False, item.description
         
         return False, f"No hay nada llamado {target_object_name} justo aquí."
     
@@ -418,9 +418,9 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
         if random.random() < CLUE_CHANCE:
             return False, game.throw_clue()
         else:
-            return False, random.choice(player.thoughts)
+            return False, random.choice(game.player.thoughts)
     else:
-        error_proceding(game, player, event)
+        error_proceding(game, game.player, event)
         return True, "Ocurrió un error al procesar tu acción, se generó un archivo, mándamelo pls klsajfñls"
 
 def process_input(response:str)->bool:

@@ -269,6 +269,15 @@ class Player(GameObject):
         """
         return self.current_place.name.lower() == place_name.lower()
 
+    def in_room(self, room_name:str)-> bool:
+        """Check if the player is in a specific room.
+        
+        Args:
+            room_name (str): The name of the room to check.
+        """
+        return self.current_room.name.lower() == room_name.lower()
+
+
     def get_item_names(self):
         """Get a list of the names of the items in the player's inventory.
         
@@ -480,6 +489,14 @@ class Place(GameObject):
             if item.name.lower() == item_name.lower():
                 self.item_list.remove(item)
                 return
+    
+    def add_item(self, item: Item) -> None:
+        """Add an item to the place.
+        
+        Args:
+            item (Item): The item to add to this place.
+        """
+        self.item_list.append(item)
 
     def as_saveable_object(self) -> dict[str, object]:
         base_dict = super().as_saveable_object()
