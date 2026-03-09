@@ -19,7 +19,7 @@ from .logic import (
     solve_story,
 )
 
-__version__ = "1.1.8"
+__version__ = "1.2.0"
 
 __all__ = [
     "Area",

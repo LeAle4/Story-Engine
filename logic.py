@@ -246,32 +246,32 @@ class StorySituation:
         effect (Callable): Function to execute when the trigger occurs.
         solve_normally (bool): Whether to also apply standard event solving after the effect.
     """
-    def __init__(self, id: str, trigger_event: Event, required_flags: set[str], effect: Callable[[Game, Player], None], solve_normally: bool = False):
+    def __init__(self, id: str, trigger_events: tuple[Event,...], required_flags: set[str], effect: Callable[[Game, Player], None], solve_normally: bool = False):
         """Initialize a story situation.
         
         Args:
             id (str): Unique identifier for the situation.
-            trigger_event (Event): The event that triggers this situation.
+            trigger_events (tuple[Event]): The events that can trigger this situation.
             required_flags (set[str]): Flags that must be present for the situation to trigger.
             effect (Callable): Function taking (Game, Player) parameters to execute.
             solve_normally (bool): Whether to also solve the event normally. Defaults to False.
         """
         self.id = id
-        self.trigger_event = trigger_event
+        self.trigger_events = trigger_events
         self.required_flags = required_flags
         self.effect = effect
         self.solve_normally = solve_normally
 
     def is_trigger(self, event: Event) -> bool:
-        """Check if the given event matches the trigger event.
+        """Check if the given event matches any of the trigger events.
         
         Args:
             event (Event): The event to check.
             
         Returns:
-            bool: True if the event matches the trigger event.
+            bool: True if the event matches any of the trigger events.
         """
-        return Event.match(self.trigger_event, event)
+        return any(Event.match(trigger_event, event) for trigger_event in self.trigger_events)
 
     def execute_effect(self, game: Game, player: Player):
         """Execute the effect of the story situation.
@@ -282,7 +282,7 @@ class StorySituation:
         """
         self.effect(game, player)
 
-def find_story(game: Game, event:Event, story_situations: list[StorySituation]) -> StorySituation|None:
+def find_story(game: Game, event:Event, story_situations: list[StorySituation]) -> tuple[StorySituation|None, bool]:
     """Check if an event is a story event by comparing it against the triggers of the story situations.
     
     Determines whether the given event matches any untriggered story situation trigger.
@@ -296,11 +296,14 @@ def find_story(game: Game, event:Event, story_situations: list[StorySituation]) 
         bool: True if the event matches an untriggered story situation, False otherwise.
     """
     for situation in story_situations:
-        if situation.is_trigger(event) and not (situation.id in game.triggered_events) and situation.required_flags.issubset(set(game.triggered_events)):
-            return situation
-    return None
+        if situation.is_trigger(event) and not (situation.id in game.triggered_events): 
+            if situation.required_flags.issubset(set(game.triggered_events)):
+                return situation, True
+            else:
+                return situation, False
+    return None, True
 
-def solve_story(game:Game, player:Player, situation:StorySituation):
+def solve_story(game:Game, player:Player, situation:StorySituation, event:Event):
     """Execute the effect of a triggered story situation and update game state.
     
     This function handles the execution of a story situation's effect, marks the
@@ -315,7 +318,7 @@ def solve_story(game:Game, player:Player, situation:StorySituation):
     situation.execute_effect(game, player)
     game.trigger_situation(situation.id)
     if situation.solve_normally:
-        solve_standard_event(game, player, situation.trigger_event)
+        solve_standard_event(game, player, event)
 
 def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool, str]:
     """Process and solve a standard game event.
@@ -377,7 +380,7 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
                 place.item_list.remove(item)
                 return False, f"Has tomado {item_name}."
             else:
-                return False, f"No creo que pueda tomar {item_name}."
+                return False, f"No creo que me sirva tomar {item_name}."
         else:
             return False, f"No creo que haya un objeto llamado {item_name} justo aquí."
     
@@ -402,6 +405,7 @@ def solve_standard_event(game: Game, player: Player, event: Event) -> tuple[bool
         if room.name.lower() == target_object_name.lower():
             return False, room.description
         
+        #Si nos estamos examinando
         if player.name.lower() == target_object_name.lower():
             return False, player.description
         
@@ -432,24 +436,23 @@ def process_input(response:str)->bool:
         bool: True if input was valid and an event was created, False otherwise.
     """
     response_stripped = response.strip()
-    response_upper = response_stripped.upper()
+    response_lower = response_stripped.lower()
     
-    if response_upper.startswith("MOVERSE A "):
-        target_place_name = response_stripped[len("MOVERSE A "):].strip()
+    if response_lower.startswith("moverse a "):
+        target_place_name = response_lower[len("moverse a "):].strip()
         EventSeq.add_event(MoveEvent(target_place_name))
         return True
-    elif response_upper.startswith("TOMAR "):
-        item_name = response_stripped[len("TOMAR "):].strip()
+    elif response_lower.startswith("tomar "):
+        item_name = response_lower[len("tomar "):].strip()
         EventSeq.add_event(TakeItemEvent(item_name))
         return True
-    elif response_upper.startswith("USAR "):
-        use_payload = response_stripped[len("USAR "):].strip()
-        use_payload_upper = use_payload.upper()
-        separator = " EN "
-        if separator not in use_payload_upper:
+    elif response_lower.startswith("usar "):
+        use_payload = response_lower[len("usar "):].strip()
+        separator = " en "
+        if separator not in use_payload:
             return False
 
-        separator_index = use_payload_upper.find(separator)
+        separator_index = use_payload.find(separator)
         item_name = use_payload[:separator_index].strip()
         target_object_name = use_payload[separator_index + len(separator):].strip()
         if not item_name or not target_object_name:
@@ -458,17 +461,17 @@ def process_input(response:str)->bool:
         EventSeq.add_event(UseItemEvent(item_name, target_object_name))
         return True
 
-    elif response_upper.startswith("EXAMINAR "):
-        target_object_name = response_stripped[len("EXAMINAR "):].strip()
+    elif response_lower.startswith("examinar "):
+        target_object_name = response_lower[len("examinar "):].strip()
         EventSeq.add_event(InspectEvent(target_object_name))
         return True
-    elif response_upper == "AYUDA":
+    elif response_lower == "ayuda":
         EventSeq.add_event(HelpEvent())
         return True
-    elif response_upper == "PENSAR":
+    elif response_lower == "pensar":
         EventSeq.add_event(ThinkEvent())
         return True
-    elif response_upper == "SALIR":
+    elif response_lower == "salir":
         EventSeq.add_event(ExitEvent())
         return True
     else:

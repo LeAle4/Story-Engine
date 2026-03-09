@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gzip
 import json
 from pathlib import Path
 import random
@@ -37,6 +38,9 @@ class Game:
         """
         return random.choice(self.clues).description if self.clues else "Creo que voy muy bien"
     
+    def add_clues(self, clues: list[Clue]) -> None:
+        self.clues.extend(clues)
+
     def trigger_situation(self, situation_id: str):
         """Mark a story situation as triggered.
         
@@ -51,13 +55,14 @@ class Game:
             if clue.associated_event_id == situation_id:
                 self.clues.remove(clue)
 
-    def save_game(self, filename: str):
+    def save_game(self, filename: str | Path):
         """Save the current game state to a file.
         
         Serializes all game state (map, player, events, clues) to JSON format.
         
         Args:
-            filename (str): The filename to save the game state to.
+            filename (str | Path): The filename to save the game state to.
+                Use a ``.json.gz`` extension to write compressed JSON.
         """
         game_state = {
             'map': self.map.as_saveable_object(),
@@ -65,8 +70,19 @@ class Game:
             'triggered_events': self.triggered_events,
             'clues': [clue.as_saveable_object() for clue in self.clues]
         }
-        with open(filename, 'w') as file:
-            json.dump(game_state, file, indent=4)
+        file_path = Path(filename)
+        dump_kwargs = {
+            'ensure_ascii': False,
+            'separators': (',', ':')
+        }
+
+        # Write compressed JSON when using a .gz suffix.
+        if file_path.suffix == '.gz':
+            with gzip.open(file_path, 'wt', encoding='utf-8') as file:
+                json.dump(game_state, file, **dump_kwargs, indent = 4)
+        else:
+            with open(file_path, 'w', encoding='utf-8') as file:
+                json.dump(game_state, file, **dump_kwargs, indent = 4)
     
     @staticmethod
     def load_game(filename: str | Path) -> Game:
@@ -75,13 +91,20 @@ class Game:
         Deserializes game state from JSON and creates a new Game instance.
         
         Args:
-            filename (str): The filename containing the saved game state.
+            filename (str | Path): The filename containing the saved game state.
+                Supports plain JSON and ``.json.gz`` compressed saves.
             
         Returns:
             Game: A new Game instance with the loaded state.
         """
-        with open(filename, 'r') as file:
-            game_state = json.load(file)
+        file_path = Path(filename)
+
+        if file_path.suffix == '.gz':
+            with gzip.open(file_path, 'rt', encoding='utf-8') as file:
+                game_state = json.load(file)
+        else:
+            with open(file_path, 'r', encoding='utf-8') as file:
+                game_state = json.load(file)
         
         game_map = Map.load_from_json_object(game_state['map'])
         player = Player.load_from_json_object(game_state['player'], game_map)
@@ -226,6 +249,12 @@ class Player(GameObject):
         self.current_room = current_room
         self.current_area = current_area
     
+    def has_item_by_name(self, item_name:str):
+        for item in self.items:
+            if item.name.lower() == item_name.lower():
+                return True
+        return False
+
     def in_place(self, place_name: str) -> bool:
         """Check if the player is in a specific place.
         
@@ -248,6 +277,10 @@ class Player(GameObject):
     def get_item_by_name(self, item_name:str):
         return next((item for item in self.items if item.name.lower() == item_name.lower()), None)
 
+    def remove_item_by_name(self, item_name:str) -> None:
+        for item in self.items:
+            if item.name.lower() == item_name.lower():
+                self.items.remove(item)
 
     def as_saveable_object(self) -> dict[str, object]:
         """Return a dictionary representation of the player for saving.
@@ -452,6 +485,19 @@ class Place(GameObject):
             npc_list=[NPC.load_from_json_object(npc_data) for npc_data in json_object.get('npc_list', [])]
         )
 
+    def __getitem__(self, item_id:str) -> Item|None:
+        for item in self.item_list:
+            if item.id == item_id:
+                return item
+        return None
+    
+    def __setitem__(self, item_id:str, item: Item) -> None:
+        for i, existing_item in enumerate(self.item_list):
+            if existing_item.id == item_id:
+                self.item_list[i] = item
+                return
+        self.item_list.append(item)
+
 class Room(Place):
     """Room in the game world, inherits from `Place`.
     
@@ -522,6 +568,19 @@ class Room(Place):
             item_list=[Item.load_from_json_object(item_data) for item_data in json_object.get('item_list', [])],
             npc_list=[NPC.load_from_json_object(npc_data) for npc_data in json_object.get('npc_list', [])]
         )
+    
+    def __getitem__(self, place_id:str)-> Place|None:
+        for place in self.place_list:
+            if place.id == place_id:
+                return place
+        return None
+    
+    def __setitem__(self, place_id:str, place: Place) -> None:
+        for i, existing_place in enumerate(self.place_list):
+            if existing_place.id == place_id:
+                self.place_list[i] = place
+                return
+        self.place_list.append(place)
 
 class Area(GameObject):
     """Area in the game world, inherits from `GameObject`.
@@ -609,6 +668,19 @@ class Area(GameObject):
             room_list=room_list,
             conections=conections
         )
+    
+    def __getitem__(self, room_id:str):
+        for room in self.room_list:
+            if room.id == room_id:
+                return room
+        return None
+    
+    def __setitem__(self, room_id:str, room: Room) -> None:
+        for i, existing_room in enumerate(self.room_list):
+            if existing_room.id == room_id:
+                self.room_list[i] = room
+                return
+        self.room_list.append(room)
 
 class Map(GameObject):
     """Map of the game world, inherits from `GameObject`.
@@ -684,3 +756,16 @@ class Map(GameObject):
             area_list=area_list,
             connections=connections
         )
+    
+    def __getitem__(self, area_id:str) -> Area|None:
+        for area in self.area_list:
+            if area.id == area_id:
+                return area
+        return None
+    
+    def __setitem__(self, area_id:str, area: Area) -> None:
+        for i, existing_area in enumerate(self.area_list):
+            if existing_area.id == area_id:
+                self.area_list[i] = area
+                return
+        self.area_list.append(area)
