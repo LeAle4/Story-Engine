@@ -249,6 +249,9 @@ class Player(GameObject):
         self.current_room = current_room
         self.current_area = current_area
     
+    def add_item(self, item:Item)-> None:
+        self.items.append(item)
+
     def has_item_by_name(self, item_name:str):
         for item in self.items:
             if item.name.lower() == item_name.lower():
@@ -466,6 +469,17 @@ class Place(GameObject):
             if item.name.lower() == item_name.lower():
                 return item
         return None
+
+    def remove_item_by_name(self, item_name: str) -> None:
+        """Remove an item by name from the place.
+        
+        Args:
+            item_name (str): The name of the item to remove.
+        """
+        for item in self.item_list:
+            if item.name.lower() == item_name.lower():
+                self.item_list.remove(item)
+                return
 
     def as_saveable_object(self) -> dict[str, object]:
         base_dict = super().as_saveable_object()
