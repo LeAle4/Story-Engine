@@ -30,6 +30,13 @@ class Game:
         self.triggered_events = []
         self.clues = clues
     
+    def has_been_triggered(self, situation_id: str) -> bool:
+        """Check if a story situation has already been triggered.
+        
+        Args:
+            situation_id (str): The ID of the situation to check."""
+        return situation_id in self.triggered_events
+
     def throw_clue(self):
         """Get a random clue from the available clues.
         
@@ -51,7 +58,7 @@ class Game:
             situation_id (str): The ID of the situation being triggered.
         """
         self.triggered_events.append(situation_id)
-        for clue in self.clues:
+        for clue in self.clues.copy():
             if clue.associated_event_id == situation_id:
                 self.clues.remove(clue)
 
@@ -209,11 +216,13 @@ class GameObject:
         Returns:
             GameObject: A GameObject instance initialized from the JSON data.
         """
-        return GameObject(
+        obj = GameObject(
             name=json_object['name'],
             description=json_object['description'],
             id=json_object['id'],
         )
+        obj.isknown = json_object.get('isknown', False)
+        return obj
 
 class Player(GameObject):
     """Player character, inherits from `GameObject`.
@@ -366,11 +375,13 @@ class NPC(GameObject):
     
     @staticmethod
     def load_from_json_object(json_object: dict):
-        return NPC(
+        npc = NPC(
             name=json_object['name'],
             description=json_object['description'],
             id=json_object['id']
         )
+        npc.isknown = json_object.get('isknown', False)
+        return npc
 
 class Item(GameObject):
     """Item that can be interacted with, inherits from `GameObject`.
@@ -384,7 +395,7 @@ class Item(GameObject):
         use_times (int): How many times the item can be used.
     """
 
-    def __init__(self, name: str, description: str, id: str, takeable:bool = False, amount: int = 1, use_times:int = 1):
+    def __init__(self, name: str, description: str, id: str, takeable:bool = False, amount: int = 1, use_times:int = 1, isknown= False):
         """Initialize with `name`, `description`, and `id`.
         
         Args:
@@ -399,19 +410,21 @@ class Item(GameObject):
         self.amount = amount
         self.use_times = use_times
         self.takeable = takeable
+        self.isknown = isknown
     
     def as_saveable_object(self) -> dict[str, object]:
         base_dict = super().as_saveable_object()
         base_dict.update({
             'amount': self.amount,
             'use_times': self.use_times,
-            'takeable': self.takeable
+            'takeable': self.takeable,
+            "isknown": self.isknown
         })
         return base_dict
 
     @staticmethod
     def load_from_json_object(json_object: dict):
-        return Item(
+        item = Item(
             name=json_object['name'],
             description=json_object['description'],
             id=json_object['id'],
@@ -419,6 +432,8 @@ class Item(GameObject):
             use_times=json_object['use_times'],
             takeable=json_object['takeable']
         )
+        item.isknown = json_object.get('isknown', False)
+        return item
 
 class Place(GameObject):
     """Location in the game world, inherits from `GameObject`.
@@ -508,13 +523,15 @@ class Place(GameObject):
     
     @staticmethod
     def load_from_json_object(json_object: dict):
-        return Place(
+        place = Place(
             name=json_object['name'],
             description=json_object['description'],
             id=json_object['id'],
             item_list=[Item.load_from_json_object(item_data) for item_data in json_object.get('item_list', [])],
             npc_list=[NPC.load_from_json_object(npc_data) for npc_data in json_object.get('npc_list', [])]
         )
+        place.isknown = json_object.get('isknown', False)
+        return place
 
     def __getitem__(self, item_id:str) -> Item|None:
         for item in self.item_list:
@@ -564,6 +581,17 @@ class Room(Place):
         """
         return any(place.name.lower() == place_name.lower() for place in self.place_list)
     
+    def has_item_by_name(self, item_name: str) -> bool:
+        """Check if the room has an item with the given name, including in its places.
+        
+        Args:
+            item_name (str): The name of the item to check for."""
+        
+        if any(item.name.lower() == item_name.lower() for item in self.item_list) or any(place.has_item_by_name(item_name) for place in self.place_list):
+            return True
+        return False
+
+
     def get_place(self, place_name: str) -> Place | None:
         """Get a place by name from the room.
         
@@ -581,6 +609,10 @@ class Room(Place):
         self.isknown = True
         for place in self.place_list:
             place.isknown = True
+        for item in self.item_list:
+            item.isknown = True
+        for npc in self.npc_list:
+            npc.isknown = True
 
     def as_saveable_object(self) -> dict[str, object]:
         base_dict = super().as_saveable_object()
@@ -591,7 +623,7 @@ class Room(Place):
     
     @staticmethod
     def load_from_json_object(json_object: dict):
-        return Room(
+        room = Room(
             name=json_object['name'],
             description=json_object['description'],
             id=json_object['id'],
@@ -599,6 +631,8 @@ class Room(Place):
             item_list=[Item.load_from_json_object(item_data) for item_data in json_object.get('item_list', [])],
             npc_list=[NPC.load_from_json_object(npc_data) for npc_data in json_object.get('npc_list', [])]
         )
+        room.isknown = json_object.get('isknown', False)
+        return room
     
     def __getitem__(self, place_id:str)-> Place|None:
         for place in self.place_list:
@@ -639,16 +673,14 @@ class Area(GameObject):
         self.conections = conections if conections  else {}
 
     def is_connected(self, room1: Room, room2: Room) -> bool:
-        """Check if two rooms are connected.
+        """Check if two rooms are connected by name."""
+        r1_name = room1.name.lower()
+        r2_name = room2.name.lower()
         
-        Args:
-            room1 (Room): The first room.
-            room2 (Room): The second room.
-            
-        Returns:
-            bool: True if room2 is adjacent to room1.
-        """
-        return room2 in self.conections.get(room1, [])
+        for source, destinations in self.conections.items():
+            if source.name.lower() == r1_name:
+                return any(dest.name.lower() == r2_name for dest in destinations)
+        return False
     
     def has_room_from_name(self, room_name: str) -> bool:
         """Check if the area has a room with the given name.
@@ -692,13 +724,15 @@ class Area(GameObject):
         conections = {room_dict[room_id]: [room_dict[conn_id] for conn_id in conn_ids]
                       for room_id, conn_ids in conections_data.items() if room_id in room_dict}
 
-        return Area(
+        area = Area(
             name=json_object['name'],
             description=json_object['description'],
             id=json_object['id'],
             room_list=room_list,
             conections=conections
         )
+        area.isknown = json_object.get('isknown', False)
+        return area
     
     def __getitem__(self, room_id:str):
         for room in self.room_list:
@@ -780,13 +814,15 @@ class Map(GameObject):
         connections = {area_dict[area_id]: [area_dict[conn_id] for conn_id in conn_ids]
                        for area_id, conn_ids in connections_data.items() if area_id in area_dict}
 
-        return Map(
+        game_map = Map(
             name=json_object['name'],
             description=json_object['description'],
             id=json_object['id'],
             area_list=area_list,
             connections=connections
         )
+        game_map.isknown = json_object.get('isknown', False)
+        return game_map
     
     def __getitem__(self, area_id:str) -> Area|None:
         for area in self.area_list:

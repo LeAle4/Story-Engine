@@ -10,7 +10,7 @@ from pyStory.crash import error_proceding
 if TYPE_CHECKING:
     from pyStory.elements import Game
 
-CLUE_CHANCE = 0.3
+CLUE_CHANCE = 0.4
 
 class Event:
     """Base class for all game events.
@@ -316,7 +316,8 @@ def solve_story(game:Game, situation:StorySituation, event:Event):
     situation.execute_effect(game)
     game.trigger_situation(situation.id)
     if situation.solve_normally:
-        solve_standard_event(game, event)
+        return solve_standard_event(game, event)
+    return False, ""
 
 def solve_standard_event(game: Game, event: Event) -> tuple[bool, str]:
     """Process and solve a standard game event.
@@ -352,7 +353,8 @@ def solve_standard_event(game: Game, event: Event) -> tuple[bool, str]:
             target_room = area.get_room_by_name(target_place_name)
             if target_room is None:
                 error_proceding(game, game.player, event)
-            if area.is_connected(target_room, room):
+
+            if area.is_connected(room, target_room):
                 game.player.current_room = target_room
                 game.player.current_place = target_room
                 target_room.gets_discovered()
@@ -375,6 +377,7 @@ def solve_standard_event(game: Game, event: Event) -> tuple[bool, str]:
             if item.takeable:
                 game.player.items.append(item)
                 place.item_list.remove(item)
+                EventSeq.add_event(InspectEvent(place.name))
                 return False, f"Has tomado {item_name}."
             else:
                 return False, f"No creo que me sirva tomar {item_name}."
@@ -393,6 +396,8 @@ def solve_standard_event(game: Game, event: Event) -> tuple[bool, str]:
             if item is None:
                 error_proceding(game, game.player, event)
             return False, item.description
+        elif room.has_item_by_name(target_object_name):
+            return False, f"Tengo que moverme de aquí para ver {target_object_name}"
         
         #Check if the object is the current place
         if place.name.lower() == target_object_name.lower():
@@ -411,6 +416,10 @@ def solve_standard_event(game: Game, event: Event) -> tuple[bool, str]:
             if item is None:
                 error_proceding(game, game.player, event)
             return False, item.description
+        
+        #Check if is a place in the room but not the one we are standing
+        if room.has_place(target_object_name):
+            return False, f"Tengo que moverme a {target_object_name} para examinarlo mejor"
         
         return False, f"No hay nada llamado {target_object_name} justo aquí."
     
